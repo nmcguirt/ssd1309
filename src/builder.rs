@@ -44,7 +44,7 @@
 //! ```
 
 use core::marker::PhantomData;
-use hal::{self, digital::v2::OutputPin};
+use hal::{self, digital::{ErrorKind, ErrorType, OutputPin}};
 
 use crate::{
     displayrotation::DisplayRotation,
@@ -117,12 +117,30 @@ impl<PinE> NoOutputPin<PinE> {
     }
 }
 
-impl<PinE> OutputPin for NoOutputPin<PinE> {
-    type Error = PinE;
-    fn set_low(&mut self) -> Result<(), PinE> {
+#[derive(Debug, Clone, Copy)]
+/// Implement error type for NoOutputPin, required by OutputPin trait in embedded-hal 1.0
+pub enum Error {
+    /// This isn't a pin, so you can't change it's outputs
+    NotAPin
+}
+
+/// Required trait by embedded-hal 1.0
+impl hal::digital::Error for Error {
+    /// Needs to return 
+    fn kind(&self) -> ErrorKind {
+        ErrorKind::Other
+    }
+}
+
+impl ErrorType for NoOutputPin {
+  type Error = Error;
+}
+
+impl OutputPin for NoOutputPin {
+    fn set_low(&mut self) -> Result<(), Error> {
         Ok(())
     }
-    fn set_high(&mut self) -> Result<(), PinE> {
+    fn set_high(&mut self) -> Result<(), Error> {
         Ok(())
     }
 }
@@ -130,7 +148,7 @@ impl<PinE> OutputPin for NoOutputPin<PinE> {
 #[cfg(test)]
 mod tests {
     use super::NoOutputPin;
-    use embedded_hal::digital::v2::OutputPin;
+    use embedded_hal::digital::OutputPin;
 
     enum SomeError {}
 
